@@ -2,26 +2,41 @@
 import os
 import logging
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    ContextTypes
+)
+from market import analyze_eurusd
 
 logging.basicConfig(level=logging.INFO)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🔥 SIDOROV SIGNALS AI\n\n"
-        "Бот успешно запущен!\n"
-        "📊 Режим: DEMO\n"
-        "💱 Анализ: в разработке\n\n"
-        "Реальные сигналы пока не подключены.\n"
-        "Команда /help — помощь."
+        "Бот работает!\n"
+        "💶 Пара: EUR/USD\n"
+        "📊 Режим: DEMO\n\n"
+        "Команды:\n"
+        "/eurusd — получить справочный курс\n"
+        "/help — помощь"
     )
+
+async def eurusd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        result = analyze_eurusd()
+        await update.message.reply_text(result)
+    except Exception as error:
+        logging.exception("Ошибка получения курса")
+        await update.message.reply_text(
+            "Не удалось получить курс. Попробуй позже."
+        )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "SIDOROV SIGNALS AI\n\n"
         "/start — запуск\n"
-        "/help — помощь\n\n"
-        "Учебный режим. Сделки не открываются."
+        "/eurusd — курс EUR/USD\n"
+        "/help — помощь"
     )
 
 def main():
@@ -31,6 +46,7 @@ def main():
 
     app = Application.builder().token(token).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("eurusd", eurusd))
     app.add_handler(CommandHandler("help", help_command))
 
     app.run_webhook(
@@ -43,5 +59,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
