@@ -1,8 +1,10 @@
 
 import requests
 
+
 def get_candles(interval):
     url = "https://biquote.io/api/EURUSD/ohlc"
+
     response = requests.get(
         url,
         params={"interval": interval, "limit": 200},
@@ -15,7 +17,7 @@ def get_candles(interval):
     bars.sort(key=lambda b: b["openTime"])
 
     if len(bars) < 40:
-        raise ValueError("Недостаточно закрытых свечей")
+        raise ValueError("Недостаточно свечей")
 
     return [float(b["close"]) for b in bars]
 
@@ -47,9 +49,10 @@ def calculate_rsi(values, period=14):
     avg_loss = sum(losses) / period
 
     if avg_loss == 0:
-        return 100.0
+        return 100.0 if avg_gain > 0 else 50.0
 
-    return 100 - (100 / (1 + avg_gain / avg_loss))
+    rs = avg_gain / avg_loss
+    return 100 - (100 / (1 + rs))
 
 
 def analyze_interval(interval):
@@ -66,24 +69,33 @@ def analyze_interval(interval):
     ]
 
     signal_line = ema(macd_line, 9)
-
     rsi = calculate_rsi(prices)
 
-    direction = "НЕЙТРАЛЬНО"
-
-    if (
+    bullish = (
         prices[-1] > ema21[-1]
+        and ema9[-1] > ema21[-1]
         and macd_line[-1] > signal_line[-1]
         and 50 < rsi < 70
-    ):
-        direction = "ВОСХОДЯЩЕЕ ДВИЖЕНИЕ"
+    )
 
-    elif (
+    bearish = (
         prices[-1] < ema21[-1]
+        and ema9[-1] < ema21[-1]
         and macd_line[-1] < signal_line[-1]
         and 30 < rsi < 50
-    ):
-        direction = "НИСХОДЯЩЕЕ ДВИЖЕНИЕ"
+    )
+
+    if bullish:
+        direction = "ВОСХОДЯЩАЯ ТЕНДЕНЦИЯ 🟢"
+        explanation = "Большинство показателей указывают вверх."
+
+    elif bearish:
+        direction = "НИСХОДЯЩАЯ ТЕНДЕНЦИЯ 🔴"
+        explanation = "Большинство показателей указывают вниз."
+
+    else:
+        direction = "НЕТ ЧЁТКОГО СИГНАЛА ⚪"
+        explanation = "Показатели не дают согласованной картины."
 
     return (
         f"⏱ Таймфрейм: {interval}\n"
@@ -92,8 +104,9 @@ def analyze_interval(interval):
         f"📈 EMA(9): {ema9[-1]:.5f}\n"
         f"📈 EMA(21): {ema21[-1]:.5f}\n"
         f"MACD: {macd_line[-1]:.6f}\n"
-        f"Signal: {signal_line[-1]:.6f}\n"
-        f"🔎 Оценка: {direction}"
+        f"Signal: {signal_line[-1]:.6f}\n\n"
+        f"🔎 Оценка: {direction}\n"
+        f"💬 Объяснение: {explanation}"
     )
 
 
@@ -103,15 +116,15 @@ def analyze_eurusd():
     for interval in ("1m", "5m"):
         try:
             results.append(analyze_interval(interval))
-        except Exception as error:
+        except Exception:
             results.append(
-                f"⏱ {interval}: ошибка получения данных"
+                f"⏱ {interval}: не удалось получить данные."
             )
 
     return (
-        "💶 EUR/USD — УЧЕБНЫЙ АНАЛИЗ\n\n"
+        "💶 SIDOROV SIGNALS AI\n"
+        "📊 УЧЕБНЫЙ АНАЛИЗ EUR/USD\n\n"
         + "\n\n".join(results)
         + "\n\n⚠️ Это техническая оценка, "
-          "не прогноз и не торговая рекомендация."
+          "а не прогноз или гарантия движения цены."
     )
-
