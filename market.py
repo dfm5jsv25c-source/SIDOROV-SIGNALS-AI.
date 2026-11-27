@@ -86,45 +86,70 @@ def analyze_interval(interval):
     )
 
     if bullish:
-        direction = "ВОСХОДЯЩАЯ ТЕНДЕНЦИЯ 🟢"
-        explanation = "Большинство показателей указывают вверх."
+        direction = "UP"
+        description = "Восходящая тенденция 🟢"
 
     elif bearish:
-        direction = "НИСХОДЯЩАЯ ТЕНДЕНЦИЯ 🔴"
-        explanation = "Большинство показателей указывают вниз."
+        direction = "DOWN"
+        description = "Нисходящая тенденция 🔴"
 
     else:
-        direction = "НЕТ ЧЁТКОГО СИГНАЛА ⚪"
-        explanation = "Показатели не дают согласованной картины."
+        direction = "NEUTRAL"
+        description = "Нет чёткого направления ⚪"
 
-    return (
+    report = (
         f"⏱ Таймфрейм: {interval}\n"
         f"💶 Цена: {prices[-1]:.5f}\n"
         f"📊 RSI(14): {rsi:.2f}\n"
         f"📈 EMA(9): {ema9[-1]:.5f}\n"
         f"📈 EMA(21): {ema21[-1]:.5f}\n"
         f"MACD: {macd_line[-1]:.6f}\n"
-        f"Signal: {signal_line[-1]:.6f}\n\n"
-        f"🔎 Оценка: {direction}\n"
-        f"💬 Объяснение: {explanation}"
+        f"Signal: {signal_line[-1]:.6f}\n"
+        f"🔎 Оценка: {description}"
     )
+
+    return direction, report
 
 
 def analyze_eurusd():
     results = []
+    directions = {}
 
     for interval in ("1m", "5m"):
         try:
-            results.append(analyze_interval(interval))
+            direction, report = analyze_interval(interval)
+            directions[interval] = direction
+            results.append(report)
+
         except Exception:
+            directions[interval] = "ERROR"
             results.append(
-                f"⏱ {interval}: не удалось получить данные."
+                f"⏱ {interval}: ошибка получения данных"
             )
+
+    one_minute = directions["1m"]
+    five_minutes = directions["5m"]
+
+    if one_minute == "UP" and five_minutes == "UP":
+        overall = "🟢 ОБА ТАЙМФРЕЙМА ПОКАЗЫВАЮТ ВВЕРХ"
+
+    elif one_minute == "DOWN" and five_minutes == "DOWN":
+        overall = "🔴 ОБА ТАЙМФРЕЙМА ПОКАЗЫВАЮТ ВНИЗ"
+
+    elif "ERROR" in (one_minute, five_minutes):
+        overall = "⚪ НЕДОСТАТОЧНО ДАННЫХ"
+
+    else:
+        overall = "⚪ НЕТ СОВПАДЕНИЯ НАПРАВЛЕНИЙ"
 
     return (
         "💶 SIDOROV SIGNALS AI\n"
-        "📊 УЧЕБНЫЙ АНАЛИЗ EUR/USD\n\n"
+        "📊 АНАЛИЗ EUR/USD\n\n"
         + "\n\n".join(results)
-        + "\n\n⚠️ Это техническая оценка, "
-          "а не прогноз или гарантия движения цены."
+        + "\n\n━━━━━━━━━━━━━━\n"
+        + "🎯 ОБЩАЯ ОЦЕНКА:\n"
+        + overall
+        + "\n\n⚠️ Учебный анализ. Не прогноз "
+          "и не торговая рекомендация."
     )
+
